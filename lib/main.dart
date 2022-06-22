@@ -192,9 +192,27 @@ class _HomePageState extends State<HomePage> {
     await characteristics[9].write([0, 0, 0, 0]);
   }
 
-  void readGlobalCfg() async {}
+  Future<List<int>> readGlobalCfg() async {
+    try {
+      List<BluetoothService> services = await _device.discoverServices();
+      var characteristics = services[3].characteristics;
+      List<int> globalCfg = await characteristics[0].read();
+      print(globalCfg);
+      return globalCfg;
+    } catch (err) {
+      return [-1, -1, -1, -1];
+    }
+  }
 
-  void writeGlobalCfg(cfg) async {}
+  void writeGlobalCfg(cfg) async {
+    try {
+      List<BluetoothService> services = await _device.discoverServices();
+      var characteristics = services[3].characteristics;
+      await characteristics[0].write(cfg);
+    } catch (err) {
+      print(err);
+    }
+  }
 
   void pakWrite(pak, data) async {
     List<BluetoothService> services = await _device.discoverServices();
@@ -210,8 +228,6 @@ class _HomePageState extends State<HomePage> {
     await characteristics[9].write(offset);
     await Future.delayed(const Duration(milliseconds: 400), () {});
 
-    //List<int> predata = List<int>.filled(32768, 3, growable: false);
-    //Uint8List data = Uint8List.fromList(predata);
     int mtu = 128;
     int position = 0;
     for (int i = 0; i < 32768; i += 0) {
@@ -335,6 +351,30 @@ class _HomePageState extends State<HomePage> {
             pakRead(3);
           },
           child: const Icon(Icons.file_download),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            primary: Colors.blue, // background
+            onPrimary: Colors.white, // foreground
+          ),
+          onPressed: () async {
+            //print(makeFormattedPak());
+            //pakRead(0);
+            print(await readGlobalCfg());
+          },
+          child: const Icon(Icons.fire_truck),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            primary: Colors.blue, // background
+            onPrimary: Colors.white, // foreground
+          ),
+          onPressed: () async {
+            //print(makeFormattedPak());
+            //pakRead(0);
+            writeGlobalCfg([0, 0, 0, 0]);
+          },
+          child: const Icon(Icons.fire_hydrant),
         ),
       ],
     );
