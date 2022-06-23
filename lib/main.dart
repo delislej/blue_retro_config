@@ -22,6 +22,13 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+//OTA update bytes
+  List<int> ota_start = [0xa5];
+
+  List<int> ota_end = [0x5a];
+
+  List<int> ota_abort = [0xde];
+
 // Some state management stuff
   bool _foundDeviceWaitingToConnect = false;
   bool _scanStarted = false;
@@ -248,6 +255,33 @@ class _HomePageState extends State<HomePage> {
     await characteristics[9].write([0, 0, 0, 0]);
   }
 
+  void otaWrite(data) async {
+    List<BluetoothService> services = await _device.discoverServices();
+    var characteristics = services[3].characteristics;
+
+    await characteristics[6].write(ota_start);
+    await Future.delayed(const Duration(milliseconds: 400), () {});
+
+    int mtu = 128;
+    int position = 0;
+    for (int i = 0; i < data.length; i += 0) {
+      int end = 0;
+      if (position + mtu > data.length) {
+        end = data.length;
+      } else {
+        end = position + mtu;
+      }
+      List<int> dataToWrite = data.sublist(position, end);
+
+      await characteristics[7].write(dataToWrite);
+      await Future.delayed(const Duration(milliseconds: 75), () {});
+      position = end;
+      i = position;
+      print((i / data.length) * 100);
+    }
+    await characteristics[6].write(ota_end);
+  }
+
   void _partyTime() async {}
 
   @override
@@ -372,7 +406,8 @@ class _HomePageState extends State<HomePage> {
           onPressed: () async {
             //print(makeFormattedPak());
             //pakRead(0);
-            writeGlobalCfg([0, 0, 0, 0]);
+            //writeGlobalCfg([0, 0, 0, 0]);
+            otaWrite(await pickFile());
           },
           child: const Icon(Icons.fire_hydrant),
         ),
