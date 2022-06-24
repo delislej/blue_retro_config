@@ -28,6 +28,7 @@ class _HomePageState extends State<HomePage> {
   List<int> ota_end = [0x5a];
 
   List<int> ota_abort = [0xde];
+  double currentProgress = 0;
 
 // Some state management stuff
   bool _foundDeviceWaitingToConnect = false;
@@ -93,10 +94,18 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _connectToDevice() async {
-    await _device.connect();
+    try {
+      await _device.connect();
+    } catch (err) {
+      print(err);
+    }
     await Future.delayed(Duration(seconds: 1), () {});
     await _device.requestMtu(512);
     await Future.delayed(Duration(seconds: 1), () {});
+    print("app version:");
+    print(String.fromCharCodes(await readAppVersion()));
+    print("API version");
+    print(await readAPIversion());
     setState(() {
       _connected = true;
     });
@@ -211,6 +220,30 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<List<int>> readAppVersion() async {
+    try {
+      List<BluetoothService> services = await _device.discoverServices();
+      var characteristics = services[3].characteristics;
+      List<int> globalCfg = await characteristics[8].read();
+      print(globalCfg);
+      return globalCfg;
+    } catch (err) {
+      return [-1, -1, -1, -1];
+    }
+  }
+
+  Future<List<int>> readAPIversion() async {
+    try {
+      List<BluetoothService> services = await _device.discoverServices();
+      var characteristics = services[3].characteristics;
+      List<int> globalCfg = await characteristics[5].read();
+      print(globalCfg);
+      return globalCfg;
+    } catch (err) {
+      return [-1];
+    }
+  }
+
   void writeGlobalCfg(cfg) async {
     try {
       List<BluetoothService> services = await _device.discoverServices();
@@ -256,14 +289,17 @@ class _HomePageState extends State<HomePage> {
   }
 
   void otaWrite(data) async {
+    await _device.requestMtu(512);
+    await Future.delayed(Duration(seconds: 2), () {});
     List<BluetoothService> services = await _device.discoverServices();
     var characteristics = services[3].characteristics;
 
     await characteristics[6].write(ota_start);
-    await Future.delayed(const Duration(milliseconds: 400), () {});
+    await Future.delayed(const Duration(milliseconds: 100), () {});
 
-    int mtu = 128;
+    int mtu = 144;
     int position = 0;
+
     for (int i = 0; i < data.length; i += 0) {
       int end = 0;
       if (position + mtu > data.length) {
@@ -272,12 +308,22 @@ class _HomePageState extends State<HomePage> {
         end = position + mtu;
       }
       List<int> dataToWrite = data.sublist(position, end);
-
-      await characteristics[7].write(dataToWrite);
-      await Future.delayed(const Duration(milliseconds: 75), () {});
+      try {
+        await characteristics[7].write(dataToWrite);
+      } catch (err) {
+        print(err);
+        setState(() {
+          currentProgress = 0;
+        });
+        return;
+      }
+      //await Future.delayed(const Duration(milliseconds: 75), () {});
       position = end;
       i = position;
-      print((i / data.length) * 100);
+      setState(() {
+        currentProgress = i / data.length;
+      });
+      print((i / data.length));
     }
     await characteristics[6].write(ota_end);
   }
@@ -291,7 +337,13 @@ class _HomePageState extends State<HomePage> {
         title: const Text('Drawer Demo'),
       ),
       backgroundColor: Colors.white,
-      body: Container(),
+      body: Center(
+        child: CircularProgressIndicator(
+          backgroundColor: Colors.grey,
+          value: currentProgress,
+          semanticsLabel: 'Linear progress indicator',
+        ),
+      ),
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
