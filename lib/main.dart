@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io' show Platform;
+import 'package:collection/collection.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_blue/flutter_blue.dart';
 import 'package:flutter/material.dart';
@@ -29,6 +30,11 @@ class _HomePageState extends State<HomePage> {
 
   List<int> ota_abort = [0xde];
   double currentProgress = 0;
+
+//list view stuff
+
+  List<BluetoothDevice> btFoundDevices = [];
+  Set<DeviceIdentifier> blueRetroDevices = {};
 
 // Some state management stuff
   bool _foundDeviceWaitingToConnect = false;
@@ -68,19 +74,24 @@ class _HomePageState extends State<HomePage> {
     if (permGranted) {
 // Main scanning logic happens here ⤵️
 
-      flutterBlue.startScan(timeout: Duration(seconds: 30));
+      flutterBlue.startScan(timeout: Duration(seconds: 15));
 
 // Listen to scan results
       var subscription = flutterBlue.scanResults.listen((results) {
         // do something with scan results
+
         for (ScanResult r in results) {
           if (r.device.name.contains("Blue")) {
-            print("found a blueretro device!");
-            flutterBlue.stopScan();
-            setState(() {
-              _device = r.device;
-              _foundDeviceWaitingToConnect = true;
-            });
+            print(r.device);
+            if (!blueRetroDevices.contains(r.device.id)) {
+              print("adding device!");
+              blueRetroDevices.add(r.device.id);
+              setState(() => {
+                    btFoundDevices.add(r.device)
+                    //_device = r.device;
+                    //_foundDeviceWaitingToConnect = true;
+                  });
+            }
           }
         }
       });
@@ -96,19 +107,19 @@ class _HomePageState extends State<HomePage> {
   void _connectToDevice() async {
     try {
       await _device.connect();
+      await Future.delayed(Duration(seconds: 1), () {});
+      await _device.requestMtu(512);
+      await Future.delayed(Duration(seconds: 1), () {});
+      print("app version:");
+      print(String.fromCharCodes(await readAppVersion()));
+      print("API version");
+      print(await readAPIversion());
+      setState(() {
+        _connected = true;
+      });
     } catch (err) {
       print(err);
     }
-    await Future.delayed(Duration(seconds: 1), () {});
-    await _device.requestMtu(512);
-    await Future.delayed(Duration(seconds: 1), () {});
-    print("app version:");
-    print(String.fromCharCodes(await readAppVersion()));
-    print("API version");
-    print(await readAPIversion());
-    setState(() {
-      _connected = true;
-    });
   }
 
   void changeMtu() async {
@@ -280,10 +291,12 @@ class _HomePageState extends State<HomePage> {
       List<int> dataToWrite = data.sublist(position, end);
       print(dataToWrite.length);
       await characteristics[10].write(dataToWrite);
-      await Future.delayed(const Duration(milliseconds: 100), () {});
       position = end;
       i = position;
       print(i);
+      setState(() {
+        currentProgress = i / data.length;
+      });
     }
     await characteristics[9].write([0, 0, 0, 0]);
   }
@@ -328,22 +341,40 @@ class _HomePageState extends State<HomePage> {
     await characteristics[6].write(ota_end);
   }
 
-  void _partyTime() async {}
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Drawer Demo'),
+        title: const Text('BlueRetro Config'),
       ),
       backgroundColor: Colors.white,
-      body: Center(
-        child: CircularProgressIndicator(
-          backgroundColor: Colors.grey,
-          value: currentProgress,
-          semanticsLabel: 'Linear progress indicator',
-        ),
-      ),
+      body: _connected
+          ? Center(
+              child: CircularProgressIndicator(
+                backgroundColor: Colors.grey,
+                value: currentProgress,
+                semanticsLabel: 'Linear progress indicator',
+              ),
+            )
+          : Center(
+              child: ListView.builder(
+                  padding: const EdgeInsets.all(8),
+                  itemCount: btFoundDevices.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    return Card(
+                        child: ListTile(
+                      title: Text(btFoundDevices[index].name),
+                      onTap: () {
+                        BluetoothDevice temp = btFoundDevices[index];
+                        print(btFoundDevices[index]);
+                        _device = btFoundDevices[index];
+                        _foundDeviceWaitingToConnect = true;
+                        setState(() => {});
+                      },
+                    ));
+                  }),
+            ),
+      /**/
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -425,30 +456,6 @@ class _HomePageState extends State<HomePage> {
             pakWrite(0, await pickFile());
           },
           child: const Icon(Icons.file_upload),
-        ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            primary: Colors.blue, // background
-            onPrimary: Colors.white, // foreground
-          ),
-          onPressed: () {
-            //print(makeFormattedPak());
-            //pakRead(0);
-            pakRead(3);
-          },
-          child: const Icon(Icons.file_download),
-        ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            primary: Colors.blue, // background
-            onPrimary: Colors.white, // foreground
-          ),
-          onPressed: () async {
-            //print(makeFormattedPak());
-            //pakRead(0);
-            print(await readGlobalCfg());
-          },
-          child: const Icon(Icons.fire_truck),
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
