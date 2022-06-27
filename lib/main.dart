@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:io' show Platform;
-import 'package:collection/collection.dart';
+//import 'package:collection/collection.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_blue/flutter_blue.dart';
 import 'package:flutter/material.dart';
@@ -86,11 +86,7 @@ class _HomePageState extends State<HomePage> {
             if (!blueRetroDevices.contains(r.device.id)) {
               print("adding device!");
               blueRetroDevices.add(r.device.id);
-              setState(() => {
-                    btFoundDevices.add(r.device)
-                    //_device = r.device;
-                    //_foundDeviceWaitingToConnect = true;
-                  });
+              setState(() => {btFoundDevices.add(r.device)});
             }
           }
         }
@@ -378,13 +374,13 @@ class _HomePageState extends State<HomePage> {
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
-          children: const <Widget>[
+          children: <Widget>[
             DrawerHeader(
               decoration: BoxDecoration(
                 color: Colors.blue,
               ),
               child: Text(
-                'Drawer Header',
+                'BlueRetro Config',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 24,
@@ -392,16 +388,69 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             ListTile(
-              leading: Icon(Icons.message),
-              title: Text('Messages'),
+              leading: Icon(Icons.alt_route),
+              title: Text('Presets'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        N64ManagementScreen(btDevice: _device),
+                  ),
+                );
+              },
             ),
             ListTile(
-              leading: Icon(Icons.account_circle),
-              title: Text('Profile'),
+              leading: Icon(Icons.construction),
+              title: Text('Custom Bindings'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        N64ManagementScreen(btDevice: _device),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.sd_card),
+              title: Text('N64 management'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        N64ManagementScreen(btDevice: _device),
+                  ),
+                );
+              },
             ),
             ListTile(
               leading: Icon(Icons.settings),
-              title: Text('Settings'),
+              title: Text('Advance Settings'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        N64ManagementScreen(btDevice: _device),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.update),
+              title: Text('OTA update'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        N64ManagementScreen(btDevice: _device),
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -466,11 +515,46 @@ class _HomePageState extends State<HomePage> {
             //print(makeFormattedPak());
             //pakRead(0);
             //writeGlobalCfg([0, 0, 0, 0]);
-            otaWrite(await pickFile());
+            //otaWrite(await pickFile());
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => N64ManagementScreen(btDevice: _device),
+              ),
+            );
           },
           child: const Icon(Icons.fire_hydrant),
         ),
       ],
+    );
+  }
+}
+
+class N64ManagementScreen extends StatefulWidget {
+  // In the constructor, require a Todo.
+  const N64ManagementScreen({super.key, required this.btDevice});
+
+  final BluetoothDevice btDevice;
+  @override
+  _N64ManagementScreenState createState() => _N64ManagementScreenState();
+}
+
+class _N64ManagementScreenState extends State<N64ManagementScreen> {
+  // In the constructor, require a Todo.
+
+  // Declare a field that holds the Todo.
+
+  @override
+  Widget build(BuildContext context) {
+    // Use the Todo to create the UI.
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("N64 Managment"),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Text(widget.btDevice.name),
+      ),
     );
   }
 }
