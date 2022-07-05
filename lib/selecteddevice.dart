@@ -16,21 +16,31 @@ class selecteddevice extends StatefulWidget {
 }
 
 class _selecteddeviceState extends State<selecteddevice> {
+  bool isN64 = false;
+  String appVer = "";
+  bool loading = true;
+  List<int> apiver = [];
   @override
   void initState() {
     super.initState();
+    _connectToDevice();
   }
 
   void _connectToDevice() async {
     try {
       await widget.device.connect();
-      await Future.delayed(Duration(seconds: 1), () {});
+    } catch (e) {}
+    try {
+      await Future.delayed(const Duration(seconds: 1), () {});
       await widget.device.requestMtu(512);
-      await Future.delayed(Duration(seconds: 1), () {});
+      await Future.delayed(const Duration(seconds: 1), () {});
       print("app version:");
-      print(String.fromCharCodes(await readAppVersion(widget.device)));
+      appVer = String.fromCharCodes(await readAppVersion(widget.device));
       print("API version");
-      print(await readAPIversion(widget.device));
+      apiver = await readAPIversion(widget.device);
+      setState(() {
+        loading = false;
+      });
     } catch (err) {
       print(err);
     }
@@ -38,95 +48,101 @@ class _selecteddeviceState extends State<selecteddevice> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('BlueRetro Config'),
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
+    return loading == false
+        ? Scaffold(
+            appBar: AppBar(
+              title: const Text('BlueRetro Config'),
+            ),
+            drawer: Drawer(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: <Widget>[
+                  const DrawerHeader(
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                    ),
+                    child: Text(
+                      'BlueRetro Config',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                      ),
+                    ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.alt_route),
+                    title: const Text('Presets'),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              N64ManagementScreen(btDevice: widget.device),
+                        ),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.construction),
+                    title: const Text('Custom Bindings'),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              N64ManagementScreen(btDevice: widget.device),
+                        ),
+                      );
+                    },
+                  ),
+                  if (appVer.contains("n64") == true)
+                    ListTile(
+                      leading: const Icon(Icons.sd_card),
+                      title: const Text('N64 management'),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                N64ManagementScreen(btDevice: widget.device),
+                          ),
+                        );
+                      },
+                    ),
+                  ListTile(
+                    leading: const Icon(Icons.settings),
+                    title: const Text('Advance Settings'),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              N64ManagementScreen(btDevice: widget.device),
+                        ),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.update),
+                    title: const Text('OTA update'),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              OtaScreen(btDevice: widget.device),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
-              child: Text(
-                'BlueRetro Config',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
-              ),
             ),
-            ListTile(
-              leading: Icon(Icons.alt_route),
-              title: Text('Presets'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        N64ManagementScreen(btDevice: widget.device),
-                  ),
-                );
-              },
+            body: ListView(
+              children: [Text(widget.device.name), Text(appVer)],
             ),
-            ListTile(
-              leading: Icon(Icons.construction),
-              title: Text('Custom Bindings'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        N64ManagementScreen(btDevice: widget.device),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.sd_card),
-              title: Text('N64 management'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        N64ManagementScreen(btDevice: widget.device),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.settings),
-              title: Text('Advance Settings'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        N64ManagementScreen(btDevice: widget.device),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.update),
-              title: Text('OTA update'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => OtaScreen(btDevice: widget.device),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-      body: Text(widget.device.name),
-      persistentFooterButtons: [],
-    );
+            persistentFooterButtons: [],
+          )
+        : const CircularProgressIndicator();
   }
 }

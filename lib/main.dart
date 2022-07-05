@@ -81,7 +81,7 @@ class _HomePageState extends State<HomePage> {
     if (permGranted) {
 // Main scanning logic happens here ⤵️
 
-      await flutterBlue.startScan(timeout: Duration(seconds: 5));
+      await flutterBlue.startScan(timeout: Duration(seconds: 10));
 
 // Listen to scan results
       List<BluetoothDevice> connectedDevices =
@@ -150,48 +150,50 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-        child: Scaffold(
-      backgroundColor: Colors.white,
-      body: _connected
-          ? Center(
-              child: CircularProgressIndicator(
-                backgroundColor: Colors.grey,
-                value: currentProgress,
-                semanticsLabel: 'Linear progress indicator',
+    return _scanStarted == false
+        ? SafeArea(
+            child: Scaffold(
+            backgroundColor: Colors.white,
+            body: _connected
+                ? Center(
+                    child: CircularProgressIndicator(
+                      backgroundColor: Colors.grey,
+                      value: currentProgress,
+                      semanticsLabel: 'Linear progress indicator',
+                    ),
+                  )
+                : Center(
+                    child: ListView.builder(
+                        padding: const EdgeInsets.all(8),
+                        itemCount: btFoundDevices.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          return Card(
+                              child: ListTile(
+                            title: Text(btFoundDevices[index].name),
+                            onTap: () {
+                              BluetoothDevice temp = btFoundDevices[index];
+                              print(btFoundDevices[index]);
+                              _device = btFoundDevices[index];
+                              _foundDeviceWaitingToConnect = true;
+                              Navigator.of(context).push(MaterialPageRoute(
+                                  builder: (context) =>
+                                      selecteddevice(device: _device)));
+                              setState(() => {});
+                            },
+                          ));
+                        }),
+                  ),
+            persistentFooterButtons: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  primary: Colors.blue, // background
+                  onPrimary: Colors.white, // foreground
+                ),
+                onPressed: _startScan,
+                child: const Icon(Icons.search),
               ),
-            )
-          : Center(
-              child: ListView.builder(
-                  padding: const EdgeInsets.all(8),
-                  itemCount: btFoundDevices.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    return Card(
-                        child: ListTile(
-                      title: Text(btFoundDevices[index].name),
-                      onTap: () {
-                        BluetoothDevice temp = btFoundDevices[index];
-                        print(btFoundDevices[index]);
-                        _device = btFoundDevices[index];
-                        _foundDeviceWaitingToConnect = true;
-                        Navigator.of(context).push(MaterialPageRoute(
-                            builder: (context) =>
-                                selecteddevice(device: _device)));
-                        setState(() => {});
-                      },
-                    ));
-                  }),
-            ),
-      persistentFooterButtons: [
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            primary: Colors.blue, // background
-            onPrimary: Colors.white, // foreground
-          ),
-          onPressed: _startScan,
-          child: const Icon(Icons.search),
-        ),
-      ],
-    ));
+            ],
+          ))
+        : CircularProgressIndicator();
   }
 }
