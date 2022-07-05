@@ -49,10 +49,13 @@ class _HomePageState extends State<HomePage> {
   late BluetoothDevice _device;
 
   void _startScan() async {
+    print("starting scan...");
 // Platform permissions handling stuff
     bool permGranted = false;
     setState(() {
       _scanStarted = true;
+      btFoundDevices.clear();
+      blueRetroDevices.clear();
     });
 
     if (Platform.isAndroid) {
@@ -78,9 +81,21 @@ class _HomePageState extends State<HomePage> {
     if (permGranted) {
 // Main scanning logic happens here ⤵️
 
-      flutterBlue.startScan(timeout: Duration(seconds: 15));
+      await flutterBlue.startScan(timeout: Duration(seconds: 5));
 
 // Listen to scan results
+      List<BluetoothDevice> connectedDevices =
+          await flutterBlue.connectedDevices;
+      for (BluetoothDevice device in connectedDevices) {
+        if (device.name.contains("Blue")) {
+          print(device);
+          if (!blueRetroDevices.contains(device.id)) {
+            print("adding device!");
+            blueRetroDevices.add(device.id);
+            setState(() => {btFoundDevices.add(device)});
+          }
+        }
+      }
       var subscription = flutterBlue.scanResults.listen((results) {
         // do something with scan results
 
@@ -97,7 +112,8 @@ class _HomePageState extends State<HomePage> {
       });
 
 // Stop scanning
-      flutterBlue.stopScan();
+      print("stopping scanning...");
+      await flutterBlue.stopScan();
       setState(() {
         _scanStarted = false;
       });
