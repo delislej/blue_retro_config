@@ -1,3 +1,4 @@
+import 'package:blue_retro_config/mempak.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue/flutter_blue.dart';
 import 'dart:math';
@@ -139,9 +140,15 @@ class _N64ManagementScreenState extends State<N64ManagementScreen> {
       appBar: AppBar(
         title: Text("N64 Managment"),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Text(widget.btDevice.name),
+      body: Row(
+        children: [
+          Flexible(
+            child: Column(children: [Mempak(paknum: 1), Mempak(paknum: 2)]),
+          ),
+          Flexible(
+            child: Column(children: [Mempak(paknum: 3), Mempak(paknum: 4)]),
+          )
+        ],
       ),
     );
   }
