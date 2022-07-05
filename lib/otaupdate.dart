@@ -1,4 +1,6 @@
+import 'package:blue_retro_config/main.dart';
 import 'package:flutter/material.dart';
+import './blueretroUtils.dart';
 import 'package:flutter_blue/flutter_blue.dart';
 import 'package:file_picker_cross/file_picker_cross.dart';
 import 'dart:typed_data';
@@ -24,6 +26,11 @@ class _OtaScreenState extends State<OtaScreen> {
     setState(() {
       writeStarted = true;
     });
+    try {
+      await widget.btDevice.connect();
+    } catch (err) {
+      print(err);
+    }
     await widget.btDevice.requestMtu(512);
     await Future.delayed(const Duration(seconds: 2), () {});
     List<BluetoothService> services = await widget.btDevice.discoverServices();
@@ -52,7 +59,6 @@ class _OtaScreenState extends State<OtaScreen> {
         });
         return;
       }
-      //await Future.delayed(const Duration(milliseconds: 75), () {});
       position = end;
       i = position;
       setState(() {
@@ -61,6 +67,11 @@ class _OtaScreenState extends State<OtaScreen> {
       print((i / data.length));
     }
     await characteristics[6].write(ota_end);
+    if (!mounted) {
+      return;
+    }
+    Navigator.of(context)
+        .pushNamedAndRemoveUntil('/', (Route<dynamic> route) => false);
   }
 
   Future<Uint8List> pickFile() async {

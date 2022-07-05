@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io' show Platform;
 import 'package:blue_retro_config/otaupdate.dart';
+import 'package:blue_retro_config/selecteddevice.dart';
+import './blueretroUtils.dart';
 
 import './n64manager.dart';
 //import 'package:collection/collection.dart';
@@ -109,19 +111,15 @@ class _HomePageState extends State<HomePage> {
       await _device.requestMtu(512);
       await Future.delayed(Duration(seconds: 1), () {});
       print("app version:");
-      print(String.fromCharCodes(await readAppVersion()));
+      print(String.fromCharCodes(await readAppVersion(_device)));
       print("API version");
-      print(await readAPIversion());
+      print(await readAPIversion(_device));
       setState(() {
         _connected = true;
       });
     } catch (err) {
       print(err);
     }
-  }
-
-  void _writeGlobalCfg(chrc) async {
-    await chrc.write([0, 0, 0, 3]);
   }
 
   Future<Uint8List> pickFile() async {
@@ -134,58 +132,10 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<List<int>> readGlobalCfg() async {
-    try {
-      List<BluetoothService> services = await _device.discoverServices();
-      var characteristics = services[3].characteristics;
-      List<int> globalCfg = await characteristics[0].read();
-      print(globalCfg);
-      return globalCfg;
-    } catch (err) {
-      return [-1, -1, -1, -1];
-    }
-  }
-
-  Future<List<int>> readAppVersion() async {
-    try {
-      List<BluetoothService> services = await _device.discoverServices();
-      var characteristics = services[3].characteristics;
-      List<int> globalCfg = await characteristics[8].read();
-      print(globalCfg);
-      return globalCfg;
-    } catch (err) {
-      return [-1, -1, -1, -1];
-    }
-  }
-
-  Future<List<int>> readAPIversion() async {
-    try {
-      List<BluetoothService> services = await _device.discoverServices();
-      var characteristics = services[3].characteristics;
-      List<int> globalCfg = await characteristics[5].read();
-      print(globalCfg);
-      return globalCfg;
-    } catch (err) {
-      return [-1];
-    }
-  }
-
-  void writeGlobalCfg(cfg) async {
-    try {
-      List<BluetoothService> services = await _device.discoverServices();
-      var characteristics = services[3].characteristics;
-      await characteristics[0].write(cfg);
-    } catch (err) {
-      print(err);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('BlueRetro Config'),
-      ),
+    return SafeArea(
+        child: Scaffold(
       backgroundColor: Colors.white,
       body: _connected
           ? Center(
@@ -208,166 +158,24 @@ class _HomePageState extends State<HomePage> {
                         print(btFoundDevices[index]);
                         _device = btFoundDevices[index];
                         _foundDeviceWaitingToConnect = true;
+                        Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) =>
+                                selecteddevice(device: _device)));
                         setState(() => {});
                       },
                     ));
                   }),
             ),
-      /**/
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
-              ),
-              child: Text(
-                'BlueRetro Config',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.alt_route),
-              title: Text('Presets'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        N64ManagementScreen(btDevice: _device),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.construction),
-              title: Text('Custom Bindings'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        N64ManagementScreen(btDevice: _device),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.sd_card),
-              title: Text('N64 management'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        N64ManagementScreen(btDevice: _device),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.settings),
-              title: Text('Advance Settings'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        N64ManagementScreen(btDevice: _device),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.update),
-              title: Text('OTA update'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => OtaScreen(btDevice: _device),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
       persistentFooterButtons: [
-        // We want to enable this button if the scan has NOT started
-        // If the scan HAS started, it should be disabled.
-        _scanStarted
-            // True condition
-            ? ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  primary: Colors.grey, // background
-                  onPrimary: Colors.white, // foreground
-                ),
-                onPressed: () {},
-                child: const Icon(Icons.search),
-              )
-            // False condition
-            : ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  primary: Colors.blue, // background
-                  onPrimary: Colors.white, // foreground
-                ),
-                onPressed: _startScan,
-                child: const Icon(Icons.search),
-              ),
-        _foundDeviceWaitingToConnect
-            // True condition
-            ? ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  primary: Colors.blue, // background
-                  onPrimary: Colors.white, // foreground
-                ),
-                onPressed: _connectToDevice,
-                child: const Icon(Icons.bluetooth),
-              )
-            // False condition
-            : ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  primary: Colors.grey, // background
-                  onPrimary: Colors.white, // foreground
-                ),
-                onPressed: () {},
-                child: const Icon(Icons.bluetooth),
-              ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
             primary: Colors.blue, // background
             onPrimary: Colors.white, // foreground
           ),
-          onPressed: () async {
-            //pakWrite(0, await pickFile());
-          },
-          child: const Icon(Icons.file_upload),
-        ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            primary: Colors.blue, // background
-            onPrimary: Colors.white, // foreground
-          ),
-          onPressed: () async {
-            //print(makeFormattedPak());
-            //pakRead(0);
-            //writeGlobalCfg([0, 0, 0, 0]);
-            //otaWrite(await pickFile());
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => N64ManagementScreen(btDevice: _device),
-              ),
-            );
-          },
-          child: const Icon(Icons.fire_hydrant),
+          onPressed: _startScan,
+          child: const Icon(Icons.search),
         ),
       ],
-    );
+    ));
   }
 }
